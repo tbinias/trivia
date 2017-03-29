@@ -1,47 +1,63 @@
 package com.adaptionsoft.games.trivia.runner;
 
 import com.adaptionsoft.games.uglytrivia.Game;
+import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.Random;
 
 import static org.junit.Assert.*;
 
 public class GameRunnerTest {
 
-    private final String master_123_101 = "Chet was added\n" + "They are player number 1\n" + "Pat was added\n"
-            + "They are player number 2\n" + "Sue was added\n" + "They are player number 3\n"
-            + "Chet is the current player\n" + "They have rolled a 1\n" + "Chet's new location is 1\n"
-            + "The category is Science\n" + "Science Question 0\n" + "Question was incorrectly answered\n"
-            + "Chet was sent to the penalty box\n" + "Pat is the current player\n" + "They have rolled a 2\n"
-            + "Pat's new location is 2\n" + "The category is Sports\n" + "Sports Question 0\n"
-            + "Answer was corrent!!!!\n" + "Pat now has 1 Gold Coins.\n" + "Sue is the current player\n"
-            + "They have rolled a 3\n" + "Sue's new location is 3\n" + "The category is Rock\n" + "Rock Question 0\n"
-            + "Question was incorrectly answered\n" + "Sue was sent to the penalty box\n";
+    public static final String MASTER_RESOURCES_PATH = "src/test/resources/master";
 
     @Test
-    public void name() throws Exception {
-        assertEquals(master_123_101, play(new int[]{1,2,3}, new boolean[]{true,false,true}));
+    @Ignore
+    public void createMaster() throws Exception {
+        new File(MASTER_RESOURCES_PATH).mkdirs();
+        for (int i = 0; i < 100; i++) {
+            String masterResult = play(i);
+            new FileOutputStream(MASTER_RESOURCES_PATH + "/seed_" + i + ".txt").write(masterResult.getBytes());
+        }
     }
 
-    public String play(int[] dice, boolean[] answers) throws Exception {
+    @Test
+    public void approveMaster() throws Exception {
+        for (int i = 0; i < 100; i++) {
+            List<String> strings = Files.readAllLines(Paths.get(MASTER_RESOURCES_PATH +  "/seed_" + i + ".txt"));
+            StringBuilder builder = new StringBuilder();
+            for (String line : strings) {
+                builder.append(line);
+                builder.append("\n");
+            }
+            assertEquals(builder.toString(), play(i));
+        }
+    }
+
+    private String play(long seed) throws Exception {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         PrintStream printStream = new PrintStream(bout);
         System.setOut(printStream);
+
         Game aGame = new Game();
 
         aGame.add("Chet");
         aGame.add("Pat");
         aGame.add("Sue");
 
+        Random rand = new Random(seed);
+
         boolean notAWinner = false;
-        for (int i = 0; i < dice.length; i++) {
+        do {
 
-            aGame.roll(dice[i]);
+            aGame.roll(rand.nextInt(5) + 1);
 
-            if (answers[i]) {
+            if (rand.nextInt(9) == 7) {
                 notAWinner = aGame.wrongAnswer();
             } else {
                 notAWinner = aGame.wasCorrectlyAnswered();
@@ -49,7 +65,8 @@ public class GameRunnerTest {
 
 
 
-        };
+        } while (notAWinner);
+
         return new String(bout.toByteArray());
     }
 }
